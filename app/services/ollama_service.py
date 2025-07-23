@@ -96,6 +96,65 @@ class OllamaService:
                     
         logger.error("Не удалось проанализировать чек после всех попыток")
         return None
+
+    async def query_text(self, message: str, model: str = None, temperature: float = 0.7) -> Optional[str]:
+        """
+        Отправляет текстовый запрос к модели Ollama
+        
+        Args:
+            message: Текстовое сообщение для модели
+            model: Название модели (по умолчанию использует self.model)
+            temperature: Температура генерации (0.0 - детерминистично, 2.0 - креативно)
+            
+        Returns:
+            Ответ модели или None при ошибке
+        """
+        if model is None:
+            model = self.model
+            
+        for attempt in range(self.max_retries):
+            try:
+                logger.info(f"Отправка текстового запроса к модели {model} (попытка {attempt + 1}/{self.max_retries})")
+                
+                # Формируем запрос к Ollama для текстовой модели
+                payload = {
+                    "model": model,
+                    "prompt": message,
+                    "stream": False,
+                    "options": {
+                        "temperature": temperature
+                    }
+                }
+                
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    response = await client.post(
+                        f"{self.base_url}/api/generate",
+                        json=payload
+                    )
+                    response.raise_for_status()
+                    
+                    result = response.json()
+                    response_text = result.get("response", "")
+                    
+                    if response_text:
+                        logger.info(f"Получен ответ от модели {model}: {response_text[:100]}...")
+                        return response_text
+                    else:
+                        logger.warning(f"Пустой ответ от модели (попытка {attempt + 1})")
+                        continue
+                        
+            except httpx.HTTPError as e:
+                logger.error(f"HTTP ошибка при запросе к Ollama: {e}")
+                if attempt == self.max_retries - 1:
+                    break
+                    
+            except Exception as e:
+                logger.error(f"Неожиданная ошибка при текстовом запросе: {e}")
+                if attempt == self.max_retries - 1:
+                    break
+                    
+        logger.error(f"Не удалось получить ответ от модели {model} после всех попыток")
+        return None
     
     def _get_strict_vision_prompt(self) -> str:
         """Возвращает более строгий промпт для vision модели"""

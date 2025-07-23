@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from app.routers import health, receipt
+from app.routers import health, receipt, chat
 
 # Настройка логирования
 logging.basicConfig(
@@ -30,6 +30,7 @@ app = FastAPI(
 # Подключение роутеров
 app.include_router(health.router)
 app.include_router(receipt.router)
+app.include_router(chat.router)
 
 
 # Глобальные обработчики исключений

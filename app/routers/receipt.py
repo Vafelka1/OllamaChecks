@@ -80,4 +80,6 @@ async def analyze_receipt(
         raise HTTPException(
             status_code=500,
             detail="Внутренняя ошибка сервера при обработке запроса"
-        ) 
+        )
+
+ 
